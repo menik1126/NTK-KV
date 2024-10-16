@@ -8,7 +8,7 @@
 
 ## News
 
-- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization.!
+- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization! Second-order linear kernels may have strong approximation capabilities, allowing us to approximate the softmax kernel without training.
 
 ## TODO:
 - [ ] Support linear kernel approximation of softmax operation.
