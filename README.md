@@ -1,4 +1,4 @@
-# Pyramid KV
+# NTK-KV
 
 
 
@@ -13,22 +13,7 @@
 - [2024-06-10] Support PyramidKV, SnapKV, H2O and StreamingLLM at Flash Attention v2, Sdpa Attention now! If your devices (i.e., V100, 3090) does not support Flash Attention v2, you can set attn_implementation=sdpa to try PyramidKV at Sdpa Attention!
 
 ## TODO:
-
-- [x] Support implementation of Streaming LLM, H2O and SnapKV
-
-- [x] Support Mistral model
-
-- [x] Support implementation of Needle
-
-- [x] Support KV cache compression without Flash Attention v2 (i.e. Sdpa Attention) for V100
-
-- [x] Support multi-GPU inference for 70B LlaMa-3
-
-- [ ] Introduce new functions to support kv cache budget allocation (i.e., supports for percentage.)
-
-- [ ] Support Mixtral
-
-- [ ] Support Batch Inference
+- [ ] Support linear kernel approximation of softmax operation.
 
 - [ ] Support KV cache compression at decoding stage
 
