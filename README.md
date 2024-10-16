@@ -8,14 +8,12 @@
 
 ## News
 
-- [2024-06-25] Support multi-GPUs inference with big LLMs now! Try out PyramidKV on LlaMa-3-70B-Instruct!
-
-- [2024-06-10] Support PyramidKV, SnapKV, H2O and StreamingLLM at Flash Attention v2, Sdpa Attention now! If your devices (i.e., V100, 3090) does not support Flash Attention v2, you can set attn_implementation=sdpa to try PyramidKV at Sdpa Attention!
+- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization.!
 
 ## TODO:
 - [ ] Support linear kernel approximation of softmax operation.
 
-- [ ] Support KV cache compression at decoding stage
+- [ ] Support approximating softmax using NTK through fine-tuning.
 
 ## Performence
 
@@ -53,7 +51,7 @@ flash-attn >= 2.4.0.post1
 
 ```python
 
-git clone https://github.com/Zefan-Cai/PyramidKV.git
+git clone https://github.com/menik1126/NTK-KV.git
 cd PyramidKV
 pip install -r requirements.txt .
 
@@ -113,7 +111,7 @@ Our codebase support Flash Attention v2, Sdpa Attention, etc. The results presen
 
 ```
 
-METHOD='pyramidkv'       # ['full', 'pyramidkv', 'snapkv', 'streamingllm', 'h2o']
+METHOD='h2o'       # ['full', 'pyramidkv', 'snapkv', 'streamingllm', 'h2o']
 MAX_CAPACITY_PROMPT=96  # [64, 96, 128, 256, 512, 1024, 2048, ...]
 attn_implementation="flash_attention_2" # Support "flash_attention_2", "sdpa", "".
 TAG=test
@@ -158,16 +156,9 @@ to draw the img, you should change `FOLDER_PATH` in `visualize.py` to your outpu
 
 ## Citation
 
-If you find **PyramidKV** useful for your research and applications, please kindly cite using this BibTeX:
+If you find **NTK-KV** useful for your research and applications, please give us a star.
 
-```latex
-@article{zhang2024pyramidkv,
-  title={PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling},
-  author={Zhang, Yichi and Gao, Bofei and Liu, Tianyu and Lu, Keming and Xiong, Wayne and Dong, Yue and Chang, Baobao and Hu, Junjie and Xiao, Wen and others},
-  journal={arXiv preprint arXiv:2406.02069},
-  year={2024}
-}
-```
+
 
 ## Acknowledgement
 
