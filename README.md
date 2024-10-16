@@ -52,7 +52,7 @@ flash-attn >= 2.4.0.post1
 ```python
 
 git clone https://github.com/menik1126/NTK-KV.git
-cd PyramidKV
+cd NTK-KV
 pip install -r requirements.txt .
 
 ```
