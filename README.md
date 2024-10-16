@@ -163,4 +163,4 @@ If you find **NTK-KV** useful for your research and applications, please give us
 ## Acknowledgement
 
 
-Thanks **[SnapKV]** [SnapKV: LLM Knows What You are Looking for Before Generation](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.
+Thanks **[PyramidKV]** [PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.
