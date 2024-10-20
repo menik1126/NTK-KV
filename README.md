@@ -8,9 +8,16 @@
 
 ## News
 
+<<<<<<< HEAD
 - [2024-10-20] 引入了linear_attn_triton, 添加RatchetKV
 
 ## TODO:
+=======
+- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization! 
+
+## TODO:
+- [ ] Support linear kernel approximation of softmax operation. Second-order linear kernels may have strong approximation capabilities, allowing us to approximate the softmax kernel without training.
+>>>>>>> 07bfc35fb69f938845f1db4ccaead209e4f00fa3
 
 - [ ]  Support linear kernel approximation of softmax operation.
 - [ ]  Support approximating softmax using NTK through fine-tuning.
@@ -153,4 +160,9 @@ If you find **NTK-KV** useful for your research and applications, please give us
 
 ## Acknowledgement
 
+<<<<<<< HEAD
 Thanks **[SnapKV]** [SnapKV: LLM Knows What You are Looking for Before Generation](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.
+=======
+
+Thanks **[PyramidKV]** [PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.
+>>>>>>> 07bfc35fb69f938845f1db4ccaead209e4f00fa3
