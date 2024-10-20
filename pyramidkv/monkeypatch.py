@@ -4,6 +4,7 @@ import transformers
 from pyramidkv.llama_model import llama_flash_attn2_forward_PyramidKV,llama_flash_attn2_forward_H2O,llama_flash_attn2_forward_SnapKV,llama_flash_attn2_forward_StreamingLLM
 from pyramidkv.llama_model import llama_attn_forward_PyramidKV,llama_attn_forward_H2O,llama_attn_forward_SnapKV,llama_attn_forward_StreamingLLM
 from pyramidkv.llama_model import llama_sdpa_attn_forward_PyramidKV,llama_sdpa_attn_forward_H2O,llama_sdpa_attn_forward_SnapKV,llama_sdpa_attn_forward_StreamingLLM
+from pyramidkv.llama_model import llama_attn_forward_RatchetKV
 
 from pyramidkv.mistral_model import mistral_flash_attn2_forward_PyramidKV,mistral_flash_attn2_forward_H2O,mistral_flash_attn2_forward_SnapKV,mistral_flash_attn2_forward_StreamingLLM
 from pyramidkv.mistral_model import mistral_attn_forward_PyramidKV,mistral_attn_forward_H2O,mistral_attn_forward_SnapKV,mistral_attn_forward_StreamingLLM
@@ -38,6 +39,12 @@ def replace_llama(method):
         transformers.models.llama.modeling_llama.LlamaAttention.forward = llama_attn_forward_SnapKV
         transformers.models.llama.modeling_llama.LlamaFlashAttention2.forward = llama_flash_attn2_forward_SnapKV
         transformers.models.llama.modeling_llama.LlamaSdpaAttention.forward = llama_sdpa_attn_forward_SnapKV
+
+    elif method == "ratchetkv":
+        print("Using RatchetKV!")
+        transformers.models.llama.modeling_llama.LlamaAttention.forward = llama_attn_forward_RatchetKV
+        transformers.models.llama.modeling_llama.LlamaFlashAttention2.forward = llama_attn_forward_RatchetKV
+        transformers.models.llama.modeling_llama.LlamaSdpaAttention.forward = llama_attn_forward_RatchetKV
         
         
     if method not in ["fullkv"]:

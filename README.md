@@ -1,19 +1,19 @@
-# NTK-KV
+# Ratchet-KV
 
+方法：
 
-
-<p align="center">
-    <img src="figs/PyramidKV.png" width="100%"> <br>
-</p>
+* 二阶泰勒展开核模拟exp
+* 对Q和K标准化, 因为泰勒展开输入越小越精准
+* LoRA微调W_Q和W_V
 
 ## News
 
-- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization.!
+- [2024-10-20] 引入了linear_attn_triton, 添加RatchetKV
 
 ## TODO:
-- [ ] Support linear kernel approximation of softmax operation.
 
-- [ ] Support approximating softmax using NTK through fine-tuning.
+- [ ]  Support linear kernel approximation of softmax operation.
+- [ ]  Support approximating softmax using NTK through fine-tuning.
 
 ## Performence
 
@@ -25,8 +25,7 @@
     <img src="figs/Needle.png" width="80%"> <br>
 </p>
 
-
-## Visualization: Inefficient Attention 
+## Visualization: Inefficient Attention
 
 The Llama model attention map with 3 documents is represented as follows:
 
@@ -38,8 +37,6 @@ we provide a notebook `visualization.ipynb` to reproduce the visualization resul
 
 Model attention maps for different layers would be stored at `./attention`
 
-
-
 ## Requirements
 
 ```python
@@ -47,7 +44,7 @@ transformers >= 4.41
 flash-attn >= 2.4.0.post1
 ```
 
-##  Installation
+## Installation
 
 ```python
 
@@ -58,7 +55,6 @@ pip install -r requirements.txt .
 ```
 
 ## Inference
-
 
 We support inference code on `LongBench` to repuduce our result.
 
@@ -95,7 +91,7 @@ python3 run_longbench.py \
 
 After modifying parameters, run:
 
-```bash 
+```bash
 
 sh scripts/scripts_longBench/eval.sh
 
@@ -139,8 +135,6 @@ python -u run_needle_in_haystack.py --s_len 1000 --e_len 8001\
 * method: Support `PyramidKV`, `SnapKV`, `StreamingLLM`, `H2O`.
 * max_capacity_prompt: Selected KV Size in each layer. （e.g. 128, 2048 in paper）. When method is "PyramidKV", given that the total number of KV remains unchanged, the specific KV length for each layer will be modified accordingly
 
-
-
 To reproduce our results, run
 
 ```
@@ -149,18 +143,14 @@ bash scripts/scripts_needle/eval.sh
 
 After inference, run
 
-`python scripts/scripts_needle/visualize.py` 
+`python scripts/scripts_needle/visualize.py`
 
 to draw the img, you should change `FOLDER_PATH` in `visualize.py` to your output path (the argument of `--model_version` in `eval.sh`).
-
 
 ## Citation
 
 If you find **NTK-KV** useful for your research and applications, please give us a star.
 
-
-
 ## Acknowledgement
-
 
 Thanks **[SnapKV]** [SnapKV: LLM Knows What You are Looking for Before Generation](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.

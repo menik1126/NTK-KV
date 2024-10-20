@@ -15,8 +15,140 @@ from transformers.utils import (
 )
 from pyramidkv.pyramidkv_utils import init_pyramidkv,init_snapkv,init_H2O,init_StreamingLLM
 import math
+from transformers import LlamaConfig
+from ratchetkv_utils import phi_order2, RatchetKVCache, init_ratchetkv
+from linear_attn_triton import fused_recurrent_linear_attn
 
 logger = logging.get_logger(__name__)
+
+__triton__ = True
+
+
+def llama_attn_forward_RatchetKV(
+    self,
+    hidden_states: torch.Tensor,
+    attention_mask: Optional[torch.Tensor] = None,
+    position_ids: Optional[torch.LongTensor] = None,
+    past_key_value: Optional[RatchetKVCache] = None,
+    output_attentions: bool = False,
+    use_cache: bool = False,
+    cache_position: Optional[torch.LongTensor] = None,
+    **kwargs,
+):
+    bsz, q_len, _ = hidden_states.size()
+
+    init_ratchetkv(self)
+
+    if self.config.pretraining_tp > 1:
+        key_value_slicing = (self.num_key_value_heads * self.head_dim) // self.config.pretraining_tp
+        query_slices = self.q_proj.weight.split(
+            (self.num_heads * self.head_dim) // self.config.pretraining_tp, dim=0
+        )
+        key_slices = self.k_proj.weight.split(key_value_slicing, dim=0)
+        value_slices = self.v_proj.weight.split(key_value_slicing, dim=0)
+
+        query_states = [F.linear(hidden_states, query_slices[i]) for i in range(self.config.pretraining_tp)]
+        query_states = torch.cat(query_states, dim=-1)
+
+        key_states = [F.linear(hidden_states, key_slices[i]) for i in range(self.config.pretraining_tp)]
+        key_states = torch.cat(key_states, dim=-1)
+
+        value_states = [F.linear(hidden_states, value_slices[i]) for i in range(self.config.pretraining_tp)]
+        value_states = torch.cat(value_states, dim=-1)
+
+    else:
+        query_states = self.q_proj(hidden_states)
+        key_states = self.k_proj(hidden_states)
+        value_states = self.v_proj(hidden_states)
+
+    query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
+    key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+    value_states = value_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+
+    kv_seq_len = key_states.shape[-2]
+    # if past_key_value is not None:
+    #     kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
+    if past_key_value is not None:
+        if self.layer_idx is None:
+            raise ValueError(
+                f"The cache structure has changed since version v4.36. If you are using {self.__class__.__name__} "
+                "for auto-regressive decoding with k/v caching, please make sure to initialize the attention class "
+                "with a layer index."
+            )
+        if hasattr(self, "kv_seq_len"):
+            if self.kv_seq_len != 0:
+                kv_seq_len += self.kv_seq_len
+            else:
+                kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
+        else:
+            kv_seq_len += past_key_value.get_usable_length(kv_seq_len, self.layer_idx)
+
+    cos, sin = self.rotary_emb(value_states, position_ids)
+    query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+    key_states = repeat_kv(key_states, self.num_key_value_groups)
+    value_states = repeat_kv(value_states, self.num_key_value_groups)
+
+    phi_query_states = phi_order2(query_states, self.kv_cluster.mapping_matrix)
+    phi_key_states = phi_order2(key_states, self.kv_cluster.mapping_matrix).transpose(-1, -2)
+
+    if past_key_value is not None:
+        pre_phi_key_value_sum, pre_phi_key_sum = past_key_value[self.layer_idx]
+    else:
+        pre_phi_key_value_sum = 0
+        pre_phi_key_sum = 0
+
+    if __triton__:
+        # triton implementation
+        attn_output, _ = fused_recurrent_linear_attn(
+            phi_query_states,
+            phi_key_states,
+            value_states
+        )
+        pre_phi_key_sum = pre_phi_key_sum + phi_key_states.sum(-1).unsqueeze(-1)
+        pre_phi_key_value_sum = pre_phi_key_value_sum + torch.matmul(phi_key_states, value_states)
+    else:
+        # naive implementation
+        attn_output = []
+        for i in range(q_len):
+            pre_phi_key_sum = pre_phi_key_sum + phi_key_states[:, :, :, i:i + 1]
+            pre_phi_key_value_sum = pre_phi_key_value_sum + torch.matmul(phi_key_states[:, :, :, i:i + 1],
+                                                                         value_states[:, :, i:i + 1, :])
+
+            phi_qkv = torch.matmul(phi_query_states[:, :, i:i + 1, :], pre_phi_key_value_sum)
+            phi_qk = torch.matmul(phi_query_states[:, :, i:i + 1, :], pre_phi_key_sum)
+            attn_output.append(
+                phi_qkv / phi_qk
+            )
+
+        attn_output = torch.cat(attn_output, dim=-2)
+
+    if past_key_value is not None:
+        # sin and cos are specific to RoPE models; cache_position needed for the static cache
+        cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
+
+        past_key_value.update(pre_phi_key_value_sum, pre_phi_key_sum, self.layer_idx, cache_kwargs)
+
+    if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
+        raise ValueError(
+            f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
+            f" {attn_output.size()}"
+        )
+
+    attn_output = attn_output.transpose(1, 2).contiguous()
+
+    attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)
+
+    if self.config.pretraining_tp > 1:
+        attn_output = attn_output.split(self.hidden_size // self.config.pretraining_tp, dim=2)
+        o_proj_slices = self.o_proj.weight.split(self.hidden_size // self.config.pretraining_tp, dim=1)
+        attn_output = sum([F.linear(attn_output[i], o_proj_slices[i]) for i in range(self.config.pretraining_tp)])
+    else:
+        attn_output = self.o_proj(attn_output)
+
+    if not output_attentions:
+        attn_weights = None
+
+    return attn_output, attn_weights, past_key_value
 
 
 def llama_attn_forward_PyramidKV(
