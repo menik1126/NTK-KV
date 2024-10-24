@@ -1,4 +1,4 @@
-transformers==4.41
+transformers
 pandas
 numpy
 torch
@@ -16,3 +16,6 @@ anthropic
 seaborn
 matplotlib
 triton
+ninja
+packaging
+flash-attn --no-build-isolation

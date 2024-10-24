@@ -275,8 +275,7 @@ class StreamingLLMKVCluster():
             #     raise ValueError('Pooling method not supported')
             # attn_cache = attn_weights_sum
             # indices = attn_cache.topk(self.max_capacity_prompt - self.window_size, dim=-1).indices
-            
-            
+
             indices = torch.tensor(range(self.max_capacity_prompt - self.window_size), dtype=torch.int64).to(key_states.device)
             indices = indices.unsqueeze(0).unsqueeze(0).unsqueeze(-1).repeat(bsz, num_heads, 1, head_dim)
 

@@ -10,6 +10,10 @@ import triton
 import triton.language as tl
 
 
+def maybe_contiguous(x):
+    return x.contiguous() if x is not None and x.stride(-1) != 1 else x
+
+
 def contiguous(fn):
     @functools.wraps(fn)
     def wrapper(ctx, *args, **kwargs):
@@ -24,6 +28,23 @@ def normalize_output(q, k, o):
     k = k.cumsum(-2)
     z = (q * k).sum(-1, keepdim=True)
     return o / (z + 1e-10)
+
+
+def flash_linear_attn(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    phi_k_v_sum: torch.Tensor = None,
+    phi_k_sum: torch.Tensor = None,
+):
+    o, final_state = FusedRecurrentLinearAttentionFunction.apply(q, k, v, 1, phi_k_v_sum, True)
+
+    k = (k.cumsum(-2) + phi_k_sum) if phi_k_sum is not None else k.cumsum(-2)
+    d = (q * k).sum(-1, keepdim=True)
+
+    o = o / (d + 1e-10)
+
+    return o, (final_state, k[..., -1:, :])
 
 
 @triton.jit
@@ -261,6 +282,22 @@ def fused_recurrent_linear_attn(
     return o, final_state
 
 
+def fused_recurrent_linear_attn_w_scale(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    phi_k_v_sum: torch.Tensor = None,
+    phi_k_sum: torch.Tensor = None,
+):
+    o, final_state = FusedRecurrentLinearAttentionFunction.apply(q, k, v, 1, phi_k_v_sum, True)
+
+    k = k.cumsum(-2) + phi_k_sum
+    d = torch.matmul(q, k).sum(-1, keepdim=True)
+    o = o / d
+
+    return o, (final_state, k[..., -1:, :])
+
+
 if version.parse(torch.__version__) >= version.parse("2.4"):
     autocast_custom_fwd = functools.partial(torch.amp.custom_fwd, device_type="cuda")
     autocast_custom_bwd = functools.partial(torch.amp.custom_bwd, device_type="cuda")
@@ -283,7 +320,7 @@ def fused_chunk_linear_attn_fwd_kernel(
     s_vo_h,  # stride size: T * V
     s_vo_t,  # stride size: V
     s_vo_d,  # stride size: 1
-    scale,
+    # scale,
     B,  # batch size
     H,  # H
     T,  # T
@@ -319,7 +356,7 @@ def fused_chunk_linear_attn_fwd_kernel(
     for i in range(0, tl.cdiv(T, BT)):
         # [BT, BK]
         b_q = tl.load(p_q, boundary_check=(0, 1))
-        b_q = (b_q * scale).to(b_q.dtype)
+        # b_q = (b_q * scale).to(b_q.dtype)
         # [BK, BT]
         b_k = tl.load(p_k, boundary_check=(0, 1))
         # [BT, BV]

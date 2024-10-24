@@ -1,1 +1,1 @@
-from .linear_attn import chunk_linear_attn, fused_recurrent_linear_attn, fused_chunk_linear_attn
+from .linear_attn import chunk_linear_attn, fused_recurrent_linear_attn, fused_chunk_linear_attn, flash_linear_attn

@@ -2,22 +2,33 @@
 
 方法：
 
-* 二阶泰勒展开核模拟exp
-* 对Q和K标准化, 因为泰勒展开输入越小越精准
-* LoRA微调W_Q和W_V
+* 一阶泰勒展开核模拟exp
+* 手写核实际应用会爆数值，加了clip缓解
 
 ## News
 
 <<<<<<< HEAD
+
 - [2024-10-20] 引入了linear_attn_triton, 添加RatchetKV
+- [2024-10-25] 修复了一些bug，基本把所有坑都踩了，现在运行很快，代码可优化空间应该很小。目前只支持flash-attn2，training-free。手写核实际应用会爆数值，加了clip缓解。
 
 ## TODO:
+
 =======
-- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization! 
+
+- [2024-10-16] We start researching the approximation of softmax in the KV cache setting to achieve linearization!
 
 ## TODO:
-- [ ] Support linear kernel approximation of softmax operation. Second-order linear kernels may have strong approximation capabilities, allowing us to approximate the softmax kernel without training.
+
+- [ ]  Support linear kernel approximation of softmax operation. Second-order linear kernels may have strong approximation capabilities, allowing us to approximate the softmax kernel without training.
+
 >>>>>>> 07bfc35fb69f938845f1db4ccaead209e4f00fa3
+>>>>>>>
+>>>>>>
+>>>>>
+>>>>
+>>>
+>>
 
 - [ ]  Support linear kernel approximation of softmax operation.
 - [ ]  Support approximating softmax using NTK through fine-tuning.
@@ -162,7 +173,14 @@ If you find **NTK-KV** useful for your research and applications, please give us
 
 <<<<<<< HEAD
 Thanks **[SnapKV]** [SnapKV: LLM Knows What You are Looking for Before Generation](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.
-=======
+=====================================================================================================================================================================================================
 
 Thanks **[PyramidKV]** [PyramidKV: Dynamic KV Cache Compression based on Pyramidal Information Funneling](https://github.com/FasterDecoding/SnapKV) for providing open-source code to support the expansion of this project.
+
 >>>>>>> 07bfc35fb69f938845f1db4ccaead209e4f00fa3
+>>>>>>>
+>>>>>>
+>>>>>
+>>>>
+>>>
+>>
