@@ -199,8 +199,8 @@ def llama_attn_forward_RatchetKV(
             # print(chunk_key_states.shape[-2], kv_seq_len, window_size)
             # assert chunk_key_states.shape[-2] == kv_seq_len - pre_max_capacity - window_size
 
-            self.phi_key_value_sum += torch.matmul(chunk_key_states.transpose(-1, -2), chunk_value_states)
-            self.phi_key_sum += chunk_key_states.sum(-2, keepdim=True)
+            self.phi_key_value_sum = torch.matmul(chunk_key_states.transpose(-1, -2), chunk_value_states)
+            self.phi_key_sum = chunk_key_states.sum(-2, keepdim=True)
 
             past_key_value.update(key_states_compress, value_states_compress, self.layer_idx, cache_kwargs)
         else:

@@ -11,6 +11,7 @@
 
 - [2024-10-20] 引入了linear_attn_triton, 添加RatchetKV
 - [2024-10-25] 修复了一些bug，基本把所有坑都踩了，现在运行很快，代码可优化空间应该很小。目前只支持flash-attn2，training-free。手写核实际应用会爆数值，加了clip缓解。
+- [2024-10-29] 修复了一个数据集只压缩一次的bug，新增了transformers和flash-attn的稳定版本要求，改进了手写核的精度
 
 ## TODO:
 

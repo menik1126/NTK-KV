@@ -78,7 +78,7 @@ def init_ratchetkv(self):
         if not hasattr(self.config, 'max_capacity'):
             self.config.max_capacity = 4
         if not hasattr(self.config, 'safe_limit'):
-            self.config.safe_limit = 1.5
+            self.config.safe_limit = 2
 
         self.config.window_size -= 2 * self.head_dim + self.config.max_capacity + 1
 
@@ -96,7 +96,9 @@ def _safe_scale_attn(self, attn_output, lse, query_states, phi_key_value_sum, ph
 
     ret = attn_output * (se / new_se).transpose(1, 2) + (
                 torch.matmul(phi_query_states, phi_key_value_sum) / new_se).transpose(1, 2)
-    return ret.where((ret / attn_output - 1).abs() < (self.config.safe_limit - 1), attn_output)
+    ret = ret.where((ret / attn_output - 1).abs() < (self.config.safe_limit - 1), attn_output)
+    # print(torch.norm(ret - attn_output))
+    return ret
 
 
 class TaylorFeature:
@@ -106,15 +108,17 @@ class TaylorFeature:
         self.rrd = math.sqrt(self.rd)
         self.r2 = math.sqrt(2)
 
-        # self.ids_non_diag = torch.triu_indices(self.d, self.d, 1)
-        # self.ids_diag = torch.arange(0, self.d)
+    def elu(self, x):
+        ret = x
+        ret[ret < 0] = ret[ret < 0].exp()
+        return ret
 
     def __call__(self, x):
         x = x / self.rrd
 
         return torch.cat([
             torch.ones_like(x[..., 0:1]),
-            x,
+            self.elu(x),
             (x ** 2) / self.r2,
             # z[..., self.ids_non_diag[0], self.ids_non_diag[1]] / math.sqrt(2)
         ], dim=-1)
